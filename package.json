@@ -1,0 +1,26 @@
+{
+  "name": "GL02_Xx_Master_Coder_10000_xX",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p .",
+    "start": "node dist/index.js",
+    "test": "jasmine"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jasmine": "^5.1.13",
+    "@types/node": "^24.10.1",
+    "jasmine": "^5.13.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.18.2",
+  "dependencies": {
+    "@clack/prompts": "^0.11.0"
+  }
+}
