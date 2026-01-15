@@ -44,6 +44,13 @@ export class AnswerOption {
     }
 }
 
+// Interface pour les résultats de validation
+export interface ValidationResult {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+}
+
 // The main Question entity
 // Implements the Abstract Type 'Question' defined in Section 5.3 [cite: 206-208]
 export class Question {
@@ -172,6 +179,92 @@ export class Question {
             JSON.stringify(this.getMauvaises()) === JSON.stringify(other.getMauvaises())
         );
     }
+
+    // Validation de la qualité de la question
+validate(): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // 1. Vérifier que le texte n'est pas vide
+    if (!this.text || this.text.trim() === '') {
+        errors.push('Question text cannot be empty');
+    }
+
+    // 2. Validation selon le type de question
+    switch (this.type) {
+        case QuestionType.MultipleChoice:
+            // MC doit avoir au moins 2 réponses
+            if (this.answers.length < 2) {
+                errors.push('Multiple Choice must have at least 2 answers');
+            }
+            // MC doit avoir au moins 1 bonne réponse
+            const mcCorrect = this.answers.filter(a => a.isCorrect);
+            if (mcCorrect.length === 0) {
+                errors.push('Multiple Choice must have at least 1 correct answer');
+            }
+            // Warning : bonnes pratiques (au moins 3 options)
+            if (this.answers.length < 3) {
+                warnings.push('Multiple Choice should have at least 3 options for better quality');
+            }
+            // Warning : pas de feedback
+            if (this.answers.every(a => !a.feedback)) {
+                warnings.push('Consider adding feedback to help students learn');
+            }
+            break;
+
+        case QuestionType.TrueFalse:
+            // TF doit avoir exactement 1 ou 2 réponses
+            if (this.answers.length === 0) {
+                errors.push('True/False must have an answer defined');
+            }
+            break;
+
+        case QuestionType.ShortAnswer:
+            // SA doit avoir au moins 1 bonne réponse
+            const saCorrect = this.answers.filter(a => a.isCorrect);
+            if (saCorrect.length === 0) {
+                errors.push('Short Answer must have at least 1 correct answer');
+            }
+            break;
+
+        case QuestionType.Numerical:
+            // NUM doit avoir exactement 1 réponse numérique
+            if (this.answers.length === 0) {
+                errors.push('Numerical question must have an answer');
+            } else if (this.answers.length > 1) {
+                warnings.push('Numerical question should have only 1 answer');
+            }
+            // Vérifier que c'est bien un nombre
+            const numText = this.answers[0]?.text;
+            if (numText && isNaN(Number(numText))) {
+                errors.push('Numerical answer must be a valid number');
+            }
+            break;
+
+        case QuestionType.Matching:
+            // MATCH doit avoir au moins 2 paires
+            if (this.answers.length < 2) {
+                errors.push('Matching question must have at least 2 pairs');
+            }
+            // Vérifier que toutes les paires ont un matchText
+            const invalidPairs = this.answers.filter(a => !a.matchText);
+            if (invalidPairs.length > 0) {
+                errors.push('All matching pairs must have both left and right sides');
+            }
+            break;
+
+        case QuestionType.Essay:
+        case QuestionType.Description:
+            // Pas de validation spécifique pour Essay et Description
+            break;
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors,
+        warnings
+    };
+}
 
 
 }
