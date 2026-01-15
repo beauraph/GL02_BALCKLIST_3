@@ -6,6 +6,19 @@ import { intro, outro, select, spinner, text } from '@clack/prompts';
 import { GiftExporter } from "./writer";
 import { VCardGenerator } from "./vcard";
 
+
+// Fonction utilitaire pour mélanger un tableau (algorithme Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+
+
 async function main() {
 
     intro(`SRYEM Gift file editor`);
@@ -264,121 +277,134 @@ async function main() {
 
             // EF08 : Simulation de passation d'examen
                         // EF08 : Simulation de passation d'examen
-            case 'simulate':
-                if (exam.questions.length === 0) {
-                    console.log('\nNo questions in the exam, nothing to simulate.');
-                    break;
+case 'simulate':
+    if (exam.questions.length === 0) {
+        console.log('\nNo questions in the exam, nothing to simulate.');
+        break;
+    }
+
+    console.log('\n=== EXAM SIMULATION ===');
+    userAnswers.clear();
+
+    // Prendre jusqu'à 20 questions (SANS les mélanger)
+    const MAX_QUESTIONS = 20;
+    const numQuestions = Math.min(MAX_QUESTIONS, exam.questions.length);
+
+    console.log(`\nThis simulation will ask you ${numQuestions} question(s).`);
+
+    for (let i = 0; i < numQuestions; i++) {
+        const q = exam.questions[i];
+
+        console.log('\n' + '-'.repeat(60));
+        console.log(`Q${i + 1} [${q.type}]`);
+        console.log(q.text);
+
+        // Mélanger les réponses pour MC et SA
+        let displayAnswers = q.answers || [];
+        if (q.type === QuestionType.MultipleChoice || q.type === QuestionType.ShortAnswer) {
+            displayAnswers = shuffleArray([...q.answers]);
+        }
+
+        // Afficher les réponses
+        if (displayAnswers.length > 0 && q.type !== QuestionType.TrueFalse && q.type !== QuestionType.Description) {
+            displayAnswers.forEach((ans, idx) => {
+                console.log(`  ${String.fromCharCode(65 + idx)}. ${ans.text}`);
+            });
+        }
+
+        let answerStr: string = '';
+
+        if (q.type === QuestionType.TrueFalse) {
+            const tfChoice = await select({
+                message: 'Your answer:',
+                options: [
+                    { value: 'TRUE',  label: 'TRUE' },
+                    { value: 'FALSE', label: 'FALSE' },
+                ]
+            });
+            answerStr = String(tfChoice);
+        } else {
+            const raw = await text({
+                message: 'Your answer (letter A, B, C... or text):',
+                placeholder: 'A'
+            });
+            
+            const input = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
+            
+            // Convertir lettre en texte de réponse
+            if (input.length === 1 && input >= 'A' && input <= 'Z') {
+                const index = input.charCodeAt(0) - 65;
+                if (index >= 0 && index < displayAnswers.length) {
+                    answerStr = displayAnswers[index].text;
+                } else {
+                    answerStr = input;
                 }
+            } else {
+                answerStr = input;
+            }
+        }
 
-                console.log('\n=== EXAM SIMULATION ===');
-                userAnswers.clear();
+        // Stocker avec l'index i (ordre séquentiel)
+        userAnswers.set(i, answerStr);
+    }
 
-                // On prépare la liste des questions à poser
-                const allQuestions = [...exam.questions];
-
-                // Mélange simple (Fisher–Yates)
-                for (let i = allQuestions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
-                }
-
-                // Nombre de questions à poser (max 20)
-                const MAX_QUESTIONS = 20;
-                const questionsToAsk = allQuestions.slice(0, Math.min(MAX_QUESTIONS, allQuestions.length));
-
-                console.log(`\nThis simulation will ask you ${questionsToAsk.length} question(s).`);
-
-                for (let i = 0; i < questionsToAsk.length; i++) {
-                    const q = questionsToAsk[i];
-                    const originalIndex = exam.questions.indexOf(q); // pour recoller avec userAnswers
-
-                    console.log('\n' + '-'.repeat(60));
-                    console.log(`Q${i + 1} [${q.type}]`);
-                    console.log(q.text);
-
-                    // Affichage des réponses possibles quand il y en a
-                    if (q.answers && q.answers.length > 0 && q.type !== QuestionType.TrueFalse) {
-                        q.answers.forEach((ans, idx) => {
-                            console.log(`  ${idx + 1}) ${ans.text}`);
-                        });
-                    }
-
-                    let answerStr: string;
-
-                    if (q.type === QuestionType.TrueFalse) {
-                        const tfChoice = await select({
-                            message: 'Your answer:',
-                            options: [
-                                { value: 'TRUE',  label: 'TRUE' },
-                                { value: 'FALSE', label: 'FALSE' },
-                            ]
-                        });
-                        answerStr = String(tfChoice);
-                    } else {
-                        const raw = await text({
-                            message: 'Your answer (text or number):',
-                            placeholder: '1'
-                        });
-                        answerStr = typeof raw === 'string' ? raw.trim() : '';
-                    }
-
-                    // On stocke par rapport à l'indice ORIGINAL de la question
-                    userAnswers.set(originalIndex, answerStr);
-                }
-
-                console.log('\nSimulation finished. You can now see the summary with "Show exam summary".');
-                break;
-
+    console.log('\nSimulation finished. You can now see the summary with "Show exam summary".');
+    break;
             // EF09 : Bilan des réponses après simulation
-            case 'summary':
-                if (exam.questions.length === 0) {
-                    console.log('\nNo exam loaded.');
-                    break;
-                }
-                if (userAnswers.size === 0) {
-                    console.log('\nNo simulation done yet.');
-                    break;
-                }
+case 'summary':
+    if (exam.questions.length === 0) {
+        console.log('\nNo exam loaded.');
+        break;
+    }
+    if (userAnswers.size === 0) {
+        console.log('\nNo simulation done yet.');
+        break;
+    }
 
-                console.log('\n=== EXAM SUMMARY ===');
+    console.log('\n=== EXAM SUMMARY ===');
 
-                let graded = 0;
-                let correctCount = 0;
+    let graded = 0;
+    let correctCount = 0;
 
-                exam.questions.forEach((q, idx) => {
-                    const user = userAnswers.get(idx);
-                    const correctOptions = q.answers?.filter(a => a.isCorrect) ?? [];
+    // 🆕 ON ITÈRE SEULEMENT SUR LES QUESTIONS QUI ONT ÉTÉ RÉPONDUES
+    userAnswers.forEach((userAnswer, questionIndex) => {
+        const q = exam.questions[questionIndex];
+        const correctOptions = q.answers?.filter(a => a.isCorrect) ?? [];
 
-                    // Cas non noté : pas de bonne réponse définie (description, etc.)
-                    if (!user || correctOptions.length === 0) {
-                        console.log(`Q${idx + 1}: Not graded (no correct answer defined)`);
-                        return;
-                    }
+        // Cas non noté : pas de bonne réponse définie
+        if (correctOptions.length === 0) {
+            console.log(`Q${questionIndex + 1}: Not graded`);
+            return;
+        }
 
-                    graded++;
+        graded++;
 
-                    // On simplifie : une seule bonne réponse "principale"
-                    const mainCorrect = correctOptions[0];
-                    const normalizedUser = user.trim().toUpperCase();
-                    const normalizedCorrect = mainCorrect.text.trim().toUpperCase();
+        // Normalisation pour comparaison
+        const normalizedUser = userAnswer.trim().toUpperCase();
+        
+        // Vérifier si la réponse correspond à l'une des bonnes réponses
+        const isCorrect = correctOptions.some(ans => 
+            ans.text.trim().toUpperCase() === normalizedUser
+        );
 
-                    const isCorrect = normalizedUser === normalizedCorrect;
-                    if (isCorrect) correctCount++;
+        if (isCorrect) correctCount++;
 
-                    console.log(
-                        `Q${idx + 1}: ${isCorrect ? 'Correct' : 'Incorrect'} ` +
-                        `(your answer: "${user}", correct: "${mainCorrect.text}")`
-                    );
-                });
+        const correctAnswersText = correctOptions.map(a => a.text).join(' / ');
+        console.log(
+            `Q${questionIndex + 1}: ${isCorrect ? '✓ Correct' : '✗ Incorrect'} ` +
+            `(your answer: "${userAnswer}", correct: "${correctAnswersText}")`
+        );
+    });
 
-                console.log('\n--- Summary ---');
-                console.log(`Graded questions: ${graded}/${exam.questions.length}`);
-                console.log(`Correct answers:  ${correctCount}/${graded}`);
-                if (graded > 0) {
-                    const score = (correctCount / graded) * 20;
-                    console.log(`Score (on 20):   ${score.toFixed(2)}`);
-                }
-                break;
+    console.log('\n--- Summary ---');
+    console.log(`Questions answered: ${userAnswers.size}`);
+    console.log(`Graded questions: ${graded}/${userAnswers.size}`);
+    console.log(`Correct answers:  ${correctCount}/${graded}`);
+    if (graded > 0) {
+        const score = (correctCount / graded) * 20;
+        console.log(`Score (on 20):    ${score.toFixed(2)}`);
+    }
+    break;
             // EF10 : Analyse du profil de test
             case 'profile':
                 if (exam.questions.length === 0) {
