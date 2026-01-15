@@ -63,6 +63,7 @@ async function main() {
                 { value: 'simulate', label: 'Simulate exam' }, // <---  (EFO8)
                 { value: 'summary',  label: 'Show exam summary' }, // <---  (EFO9)
                 { value: 'profile',  label: 'Analyze exam profile' }, // <-- (EF10)
+                { value: 'validate', label: 'Validate exam questions' },
                 { value: 'edit', label: 'Edit a question' },
                 { value: 'add', label: 'Add a new question' },
                 { value: 'delete', label: 'Delete a question' },
@@ -405,7 +406,49 @@ async function main() {
 
                 console.log(`\nTotal questions: ${total}`);
                 break;
+case 'validate':
+    if (exam.questions.length === 0) {
+        console.log('\nNo questions to validate.');
+        break;
+    }
 
+    console.log('\n=== EXAM VALIDATION ===\n');
+    
+    let totalErrors = 0;
+    let totalWarnings = 0;
+    
+    exam.questions.forEach((q, idx) => {
+        const result = q.validate();
+        
+        if (!result.isValid || result.warnings.length > 0) {
+            console.log(`Question #${idx + 1}: "${q.title}"`);
+            
+            if (result.errors.length > 0) {
+                console.log('  ❌ ERRORS:');
+                result.errors.forEach(err => console.log(`     - ${err}`));
+                totalErrors += result.errors.length;
+            }
+            
+            if (result.warnings.length > 0) {
+                console.log('  ⚠️  WARNINGS:');
+                result.warnings.forEach(warn => console.log(`     - ${warn}`));
+                totalWarnings += result.warnings.length;
+            }
+            
+            console.log('');
+        }
+    });
+    
+    console.log('--- Validation Summary ---');
+    console.log(`Total questions: ${exam.questions.length}`);
+    console.log(`Questions with errors: ${totalErrors > 0 ? 'YES' : 'NO'}`);
+    console.log(`Total errors: ${totalErrors}`);
+    console.log(`Total warnings: ${totalWarnings}`);
+    
+    if (totalErrors === 0 && totalWarnings === 0) {
+        console.log('\n✅ All questions are valid!');
+    }
+    break;
             // EDIT
             case 'edit':
                 if (exam.questions.length === 0) {
