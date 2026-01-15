@@ -67,6 +67,11 @@ export class Question {
     toGift(): string {
         let output = "";
 
+        //Export de la catégorie
+        if (this.category) {
+            output += `$CATEGORY: ${this.category.getPath()}\n\n`;
+        }
+
         // 1. Titre (Optionnel mais recommandé)
         if (this.title) {
             output += `::${this.title}::`;
