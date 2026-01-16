@@ -123,7 +123,17 @@ async function main() {
                 // Collecte des informations
                 const lastName = await text({ message: 'Last Name (Nom):', placeholder: 'Doe', validate: v => !v ? 'Required' : undefined }) as string;
                 const firstName = await text({ message: 'First Name (Prénom):', placeholder: 'John', validate: v => !v ? 'Required' : undefined }) as string;
-                const email = await text({ message: 'Email:', placeholder: 'john.doe@school.sealand', validate: v => !v ? 'Required' : undefined }) as string;
+                const email = await text({
+                    message: 'Email:',
+                    placeholder: 'john.doe@school.sealand',
+                    validate: (value) => {
+                        if (!value) return 'Required';
+                        // Validation du format avec Regex
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                            return 'Invalid email format';
+                        }
+                    }
+                }) as string;
                 const org = await text({ message: 'Organization:', placeholder: 'SRYEM' }) as string;
                 const phone = await text({ message: 'Phone (optional):', placeholder: '+33 6 12 34 56 78' }) as string;
 
