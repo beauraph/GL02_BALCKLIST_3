@@ -324,26 +324,43 @@ case 'simulate':
                 ]
             });
             answerStr = String(tfChoice);
-        } else {
-            const raw = await text({
-                message: 'Your answer (letter A, B, C... or text):',
-                placeholder: 'A'
-            });
-            
-            const input = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
-            
-            // Convertir lettre en texte de réponse
-            if (input.length === 1 && input >= 'A' && input <= 'Z') {
-                const index = input.charCodeAt(0) - 65;
-                if (index >= 0 && index < displayAnswers.length) {
-                    answerStr = displayAnswers[index].text;
-                } else {
-                    answerStr = input;
-                }
-            } else {
-                answerStr = input;
-            }
+        }  else {
+  while (true) {
+    const raw = await text({
+      message: (displayAnswers.length > 0 && q.type !== QuestionType.Description)
+        ? `Your answer (letter A-${String.fromCharCode(65 + displayAnswers.length - 1)}):`
+        : 'Your answer:',
+      placeholder: displayAnswers.length > 0 ? 'A' : ''
+    });
+
+    const input = typeof raw === 'string' ? raw.trim() : '';
+    if (!input) {
+      console.log('Please enter an answer.');
+      continue;
+    }
+
+    const upper = input.toUpperCase();
+
+    // Si on a affiché des options (MC/SA), on exige une lettre valide
+    if (displayAnswers.length > 0 && q.type !== QuestionType.Description) {
+      if (upper.length === 1) {
+        const index = upper.charCodeAt(0) - 65;
+        if (index >= 0 && index < displayAnswers.length) {
+          answerStr = displayAnswers[index].text;
+          break;
         }
+      }
+      console.log(
+        `Invalid choice. Enter a letter between A and ${String.fromCharCode(65 + displayAnswers.length - 1)}.`
+      );
+      continue;
+    }
+
+    // Sinon: texte libre
+    answerStr = input;
+    break;
+  }
+}
 
         // Stocker avec l'index i (ordre séquentiel)
         userAnswers.set(i, answerStr);
