@@ -2,7 +2,7 @@ import { Exam, Question, QuestionType, AnswerOption } from './classes';
 import { parseGiftFile } from "./parser";
 import * as fs from 'fs';
 import * as path from 'path';
-import { intro, outro, select, spinner, text } from '@clack/prompts';
+import { intro, outro, select, spinner, text, confirm } from '@clack/prompts';
 import { GiftExporter } from "./writer";
 import { VCardGenerator } from "./vcard";
 
@@ -271,11 +271,22 @@ async function main() {
                 });
 
                 if (typeof deleteId === 'number' && deleteId !== -1) {
-                    const removed = exam.questions.splice(deleteId, 1);
-                    console.log(`Deleted: "${removed[0].title}"`);
+                    const qToDelete = exam.questions[deleteId];
+                    
+                    // --- MODIFICATION : AJOUT DE LA CONFIRMATION ---
+                    const shouldDelete = await confirm({
+                        message: `⚠️ Are you sure you want to delete "${qToDelete.title}"? This cannot be undone.`
+                    });
+
+                    if (shouldDelete) {
+                        const removed = exam.questions.splice(deleteId, 1);
+                        console.log(`✅ Deleted: "${removed[0].title}"`);
+                    } else {
+                        console.log("❌ Deletion cancelled.");
+                    }
+                    // -----------------------------------------------
                 }
                 break;
-
             // EF08 : Simulation de passation d'examen
                         // EF08 : Simulation de passation d'examen
 case 'simulate':
