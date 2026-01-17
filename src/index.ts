@@ -148,41 +148,77 @@ async function main() {
                 break;
 
             // EFO1 : RECHERCHE PAR MOT-CLÉ
+            // --- Feature 1 : RECHERCHE AVANCÉE (TYPE + MOT-CLÉ) ---
             case 'search':
-                const searchPattern = await text({
-                    message: 'Enter a keyword to search:',
-                    placeholder: 'grammar',
-                    validate: (val) => val.length < 2 ? 'Please enter at least 2 characters' : undefined
+                const searchMode = await select({
+                    message: 'Select search filter:',
+                    options: [
+                        { value: 'keyword', label: '🔤 By Keyword (Text)' },
+                        { value: 'type', label: '🏷️  By Question Type' },
+                        { value: 'cancel', label: '⬅ Cancel' }
+                    ]
                 });
 
-                if (typeof searchPattern === 'string') {
-                    const term = searchPattern.toLowerCase();
+                if (searchMode === 'cancel') break;
 
-                    const matches = exam.questions.filter(q => {
-                        // 1. Titre et Texte
-                        const inHeader = (q.title && q.title.toLowerCase().includes(term)) ||
-                            (q.text && q.text.toLowerCase().includes(term));
+                let matches: Question[] = [];
 
-                        // 2. Réponses (Answers)
-                        const inAnswers = q.answers.some(ans =>
-                            // Cherche dans le texte de la réponse
-                            ans.text.toLowerCase().includes(term) ||
-                            // Cherche dans le feedback
-                            (ans.feedback && ans.feedback.toLowerCase().includes(term)) ||
-                            // Cherche dans la partie "Droite" des questions d'appariement (Ex: Japan -> TOKYO)
-                            (ans.matchText && ans.matchText.toLowerCase().includes(term))
-                        );
-
-                        return inHeader || inAnswers;
+                // OPTION A : Recherche par MOT-CLÉ 
+                if (searchMode === 'keyword') {
+                    const searchPattern = await text({
+                        message: 'Enter a keyword:',
+                        placeholder: 'grammar',
+                        validate: (val) => val.length < 2 ? 'Please enter at least 2 characters' : undefined
                     });
 
-                    console.log(`\n Found ${matches.length} matching question(s):`);
+                    if (typeof searchPattern === 'string') {
+                        const term = searchPattern.toLowerCase();
+                        matches = exam.questions.filter(q => {
+                            // 1. Titre et Texte
+                            const inHeader = (q.title && q.title.toLowerCase().includes(term)) ||
+                                (q.text && q.text.toLowerCase().includes(term));
+                            
+                            // 2. Réponses (Answers)
+                            const inAnswers = q.answers.some(ans =>
+                                ans.text.toLowerCase().includes(term) ||
+                                (ans.feedback && ans.feedback.toLowerCase().includes(term)) ||
+                                (ans.matchText && ans.matchText.toLowerCase().includes(term))
+                            );
+                            return inHeader || inAnswers;
+                        });
+                    }
+                } 
+                // OPTION B : Recherche par TYPE (Nouveau !)
+                else if (searchMode === 'type') {
+                    const typeToFind = await select({
+                        message: 'Which type do you want to see?',
+                        options: [
+                            { value: QuestionType.MultipleChoice, label: 'Multiple Choice' },
+                            { value: QuestionType.TrueFalse, label: 'True / False' },
+                            { value: QuestionType.ShortAnswer, label: 'Short Answer' },
+                            { value: QuestionType.Matching, label: 'Matching' },
+                            { value: QuestionType.Essay, label: 'Essay' },
+                            { value: QuestionType.Description, label: 'Description' },
+                            { value: QuestionType.Numerical, label: 'Numerical' }
+                        ]
+                    });
+                    
+                    if (typeToFind) {
+                        matches = exam.questions.filter(q => q.type === typeToFind);
+                    }
+                }
+
+                // AFFICHAGE DES RÉSULTATS (Commun aux deux méthodes)
+                if (matches.length > 0) {
+                    console.log(`\n🔍 Found ${matches.length} matching question(s):`);
                     matches.forEach((q, index) => {
-                        const realIndex = exam.questions.indexOf(q);
-                        // On coupe le titre s'il est trop long
+                        // On trouve le vrai index dans l'examen complet
+                        const realIndex = exam.questions.indexOf(q); 
                         const displayTitle = q.title.length > 50 ? q.title.substring(0, 50) + "..." : q.title;
                         console.log(`   [ID: ${realIndex + 1}] [${q.type}] ${displayTitle}`);
                     });
+                } else {
+                    console.log("\n No questions found matching your criteria.");
                 }
                 break;
 
