@@ -309,5 +309,17 @@ export class Exam {
     const n = this.questions.length;
     // Examen réglementaire : entre 15 et 20 questions inclus
     return n >= 15 && n <= 20;
-  }
+    }
+    // Feature 2: Calcul du temps estimé
+    getEstimatedTime(): number {
+        let minutes = 0;
+        this.questions.forEach(q => {
+            if (q.type === QuestionType.MultipleChoice) minutes += 1.5;
+            else if (q.type === QuestionType.Essay) minutes += 15;
+            else if (q.type === QuestionType.TrueFalse) minutes += 1;
+            else minutes += 2; // Temps par défaut pour les autres types
+        });
+    return Math.ceil(minutes);
+    }
+  
 }

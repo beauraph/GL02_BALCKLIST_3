@@ -76,7 +76,8 @@ async function main() {
                 { value: 'simulate', label: 'Simulate exam' }, // <---  (EFO8)
                 { value: 'summary',  label: 'Show exam summary' }, // <---  (EFO9)
                 { value: 'profile',  label: 'Analyze exam profile' }, // <-- (EF10)
-                { value: 'validate', label: 'Validate exam questions' },
+                { value: 'time', label: 'Estimate Time' },
+                { value: 'key', label: 'Export Answer Key' },
                 { value: 'edit', label: 'Edit a question' },
                 { value: 'add', label: 'Add a new question' },
                 { value: 'delete', label: 'Delete a question' },
@@ -506,6 +507,20 @@ case 'summary':
 
                 console.log(`\nTotal questions: ${total}`);
                 break;
+
+            // --- Feature Issue 8 : ESTIMATION DU TEMPS ---
+            case 'time':
+                if (exam.questions.length === 0) {
+                    console.log("\nExam is empty.");
+                    break;
+                }
+                const t = exam.getEstimatedTime(); 
+                console.log('\n' + '═'.repeat(40));
+                console.log(` ⏱️  ESTIMATED DURATION: ${t} minutes`);
+                console.log('═'.repeat(40));
+                console.log(`(Calculated based on question types: MC=1.5m, Essay=15m...)`);
+            break;
+        
 case 'validate':
     if (exam.questions.length === 0) {
         console.log('\nNo questions to validate.');
