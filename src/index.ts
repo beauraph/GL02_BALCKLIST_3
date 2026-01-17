@@ -76,6 +76,7 @@ async function main() {
                 { value: 'simulate', label: 'Simulate exam' }, // <---  (EFO8)
                 { value: 'summary',  label: 'Show exam summary' }, // <---  (EFO9)
                 { value: 'profile',  label: 'Analyze exam profile' }, // <-- (EF10)
+                { value: 'validate', label: 'Validate exam questions' },
                 { value: 'time', label: 'Estimate Time' },
                 { value: 'key', label: 'Export Answer Key' },
                 { value: 'edit', label: 'Edit a question' },
@@ -520,6 +521,29 @@ case 'summary':
                 console.log('═'.repeat(40));
                 console.log(`(Calculated based on question types: MC=1.5m, Essay=15m...)`);
             break;
+
+            // --- Feature issue 9 : EXPORT CORRIGÉ ---
+            case 'key':
+                if (exam.questions.length === 0) {
+                    console.log("\nExam is empty, nothing to export.");
+                    break;
+                }
+                const keyName = await text({ 
+                    message: 'Enter filename for the Answer Key:', 
+                    placeholder: 'correction.txt',
+                    initialValue: 'correction.txt' 
+                });
+
+                if (typeof keyName === 'string') {
+                    // Assure-toi d'avoir sauvegardé writer.ts avant !
+                    const success = GiftExporter.saveAnswerKey(exam, keyName);
+                    if (success) {
+                        console.log(`✅ Answer key successfully saved to "${keyName}"`);
+                    } else {
+                        console.log(`❌ Error saving file.`);
+                    }
+                }
+                break;
         
 case 'validate':
     if (exam.questions.length === 0) {
